@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - AI Reviewer</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .key-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 20px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .key-status-ok { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+    .key-status-warn { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+    .key-status-bad { background: var(--critical-bg); color: var(--critical); border: 1px solid rgba(239,68,68,0.3); }
+    .key-status .status-dot { width: 10px; height: 10px; }
+    .current-key {
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: monospace;
+      font-size: 14px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .current-key button {
+      background: none;
+      border: none;
+      color: var(--critical);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Settings</h1>
+    </div>
+
+    <p style="color:var(--text-muted);margin-bottom:24px;">
+      Your API key is stored <strong>only in this browser</strong>. It's never saved on the server.
+      If you open a different browser or device, you'll need to add it again.
+    </p>
+
+    <!-- Connection Status -->
+    <div id="connection-status"></div>
+
+    <div id="alert"></div>
+
+    <!-- AI Provider -->
+    <div class="settings-section">
+      <h2>AI Provider</h2>
+      <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px;">
+        <strong>Demo mode</strong> is free but only does pattern matching.
+        Add an API key to unlock all AI features.
+      </p>
+
+      <div class="provider-options">
+        <div class="provider-option" data-provider="demo" onclick="selectProvider('demo')">
+          <h4>Demo</h4>
+          <p>Free. Pattern matching only.</p>
+        </div>
+        <div class="provider-option" data-provider="claude" onclick="selectProvider('claude')">
+          <h4>Claude</h4>
+          <p>Anthropic. Best for deep analysis.</p>
+        </div>
+        <div class="provider-option" data-provider="openai" onclick="selectProvider('openai')">
+          <h4>OpenAI</h4>
+          <p>GPT-4o powered.</p>
+        </div>
+        <div class="provider-option" data-provider="gemini" onclick="selectProvider('gemini')">
+          <h4>Gemini</h4>
+          <p>Google AI.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key -->
+    <div class="settings-section" id="api-key-section" style="display:none">
+      <h2>API Key</h2>
+
+      <!-- Show current saved key -->
+      <div id="current-key-display" style="display:none"></div>
+
+      <div class="form-group">
+        <label id="api-key-label">API Key</label>
+        <input type="password" class="form-input" id="api-key-input" placeholder="Enter your API key">
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="saveKey()">Save Key</button>
+        <button class="btn btn-secondary" onclick="testConnection()">Test Connection</button>
+      </div>
+    </div>
+
+    <!-- Model Selection -->
+    <div class="settings-section" id="model-section" style="display:none">
+      <h2>Model</h2>
+      <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px;">
+        Choose which model to use. Click <strong>Fetch Models</strong> to load available models from your provider.
+      </p>
+      <div id="current-model-display" style="display:none;margin-bottom:14px;">
+        <div class="current-key">
+          <span id="current-model-text"></span>
+          <button onclick="clearModel()">Clear</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <select class="form-input" id="model-select" style="flex:1;min-width:240px;" onchange="onModelChange()">
+          <option value="">Default (auto)</option>
+        </select>
+        <button class="btn btn-primary" onclick="fetchModels()">
+          <span id="fetch-models-text">Fetch Models</span>
+        </button>
+      </div>
+      <p id="model-status" style="color:var(--text-muted);font-size:13px;margin-top:8px;"></p>
+    </div>
+
+    <!-- How to get keys -->
+    <div class="settings-section" style="margin-top:40px;">
+      <h2>How to get an API key</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
+        <div class="card">
+          <h4 style="margin-bottom:8px;">Claude (Anthropic)</h4>
+          <ol style="font-size:13px;color:var(--text-muted);padding-left:18px;line-height:1.8;">
+            <li>Go to console.anthropic.com</li>
+            <li>Create an account</li>
+            <li>Go to API Keys</li>
+            <li>Create a new key</li>
+            <li>Copy and paste it above</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px;">OpenAI</h4>
+          <ol style="font-size:13px;color:var(--text-muted);padding-left:18px;line-height:1.8;">
+            <li>Go to platform.openai.com</li>
+            <li>Create an account</li>
+            <li>Go to API Keys</li>
+            <li>Create a new secret key</li>
+            <li>Copy and paste it above</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h4 style="margin-bottom:8px;">Gemini (Google)</h4>
+          <ol style="font-size:13px;color:var(--text-muted);padding-left:18px;line-height:1.8;">
+            <li>Go to aistudio.google.com</li>
+            <li>Sign in with Google</li>
+            <li>Click "Get API Key"</li>
+            <li>Create a key</li>
+            <li>Copy and paste it above</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    document.getElementById('navbar').innerHTML = renderNavbar();
+    document.getElementById('footer').innerHTML = renderFooter();
+    setActiveNav('nav-settings');
+
+    let selectedProvider = getProvider();
+
+    // Init
+    selectProvider(selectedProvider);
+    updateStatus();
+
+    function selectProvider(provider) {
+      selectedProvider = provider;
+      setProvider(provider);
+      document.querySelectorAll('.provider-option').forEach(el => {
+        el.classList.toggle('selected', el.dataset.provider === provider);
+      });
+
+      const keySection = document.getElementById('api-key-section');
+      const modelSection = document.getElementById('model-section');
+      if (provider === 'demo') {
+        keySection.style.display = 'none';
+        modelSection.style.display = 'none';
+        setModel('');
+      } else {
+        keySection.style.display = '';
+        const labels = { claude: 'Anthropic API Key', openai: 'OpenAI API Key', gemini: 'Google Gemini API Key' };
+        const placeholders = { claude: 'sk-ant-...', openai: 'sk-...', gemini: 'AI...' };
+        document.getElementById('api-key-label').textContent = labels[provider] || 'API Key';
+        document.getElementById('api-key-input').placeholder = placeholders[provider] || 'Enter your API key';
+        showCurrentKey();
+        showModelSection();
+      }
+
+      // Refresh navbar to reflect change
+      document.getElementById('navbar').innerHTML = renderNavbar();
+      setActiveNav('nav-settings');
+      updateStatus();
+    }
+
+    function showCurrentKey() {
+      const display = document.getElementById('current-key-display');
+      const key = getApiKey();
+      if (key) {
+        display.style.display = '';
+        display.innerHTML = `
+          <div class="current-key">
+            <span>Current key: ${escapeHtml(getMaskedKey())}</span>
+            <button onclick="removeKey()">Remove</button>
+          </div>
+        `;
+      } else {
+        display.style.display = 'none';
+      }
+    }
+
+    function saveKey() {
+      const key = document.getElementById('api-key-input').value.trim();
+      if (!key) {
+        document.getElementById('alert').innerHTML = '<div class="alert alert-error">Please enter an API key</div>';
+        return;
+      }
+      setApiKey(key);
+      document.getElementById('api-key-input').value = '';
+      document.getElementById('alert').innerHTML = '<div class="alert alert-success">API key saved to this browser!</div>';
+      showCurrentKey();
+      // Refresh navbar
+      document.getElementById('navbar').innerHTML = renderNavbar();
+      setActiveNav('nav-settings');
+      updateStatus();
+      // Show model section and auto-fetch models with the new key
+      showModelSection();
+      fetchModels();
+      setTimeout(() => { document.getElementById('alert').innerHTML = ''; }, 3000);
+    }
+
+    function removeKey() {
+      setApiKey('');
+      setModel('');
+      showCurrentKey();
+      document.getElementById('model-section').style.display = 'none';
+      document.getElementById('navbar').innerHTML = renderNavbar();
+      setActiveNav('nav-settings');
+      updateStatus();
+      document.getElementById('alert').innerHTML = '<div class="alert alert-success">API key removed.</div>';
+      setTimeout(() => { document.getElementById('alert').innerHTML = ''; }, 3000);
+    }
+
+    function updateStatus() {
+      const statusEl = document.getElementById('connection-status');
+      const provider = getProvider();
+      const key = getApiKey();
+
+      if (provider === 'demo') {
+        statusEl.innerHTML = `<div class="key-status key-status-warn"><span class="status-dot status-dot-yellow"></span> Demo mode — pattern matching only. Add an API key to unlock AI features.</div>`;
+      } else if (!key) {
+        statusEl.innerHTML = `<div class="key-status key-status-bad"><span class="status-dot status-dot-red"></span> ${provider.charAt(0).toUpperCase() + provider.slice(1)} selected but no API key added yet.</div>`;
+      } else {
+        statusEl.innerHTML = `<div class="key-status key-status-ok"><span class="status-dot status-dot-green"></span> ${provider.charAt(0).toUpperCase() + provider.slice(1)} key saved — click "Test Connection" to verify it works.</div>`;
+      }
+    }
+
+    function showModelSection() {
+      const modelSection = document.getElementById('model-section');
+      const provider = getProvider();
+      const apiKey = getApiKey();
+
+      if (!apiKey || provider === 'demo') {
+        modelSection.style.display = 'none';
+        return;
+      }
+
+      modelSection.style.display = '';
+      showCurrentModel();
+    }
+
+    function showCurrentModel() {
+      const display = document.getElementById('current-model-display');
+      const textEl = document.getElementById('current-model-text');
+      const current = getModel();
+      if (current) {
+        display.style.display = '';
+        textEl.textContent = 'Using: ' + current;
+      } else {
+        display.style.display = '';
+        textEl.textContent = 'Using: Provider default';
+      }
+    }
+
+    function clearModel() {
+      setModel('');
+      document.getElementById('model-select').value = '';
+      showCurrentModel();
+      document.getElementById('navbar').innerHTML = renderNavbar();
+      setActiveNav('nav-settings');
+    }
+
+    async function fetchModels() {
+      const provider = getProvider();
+      const apiKey = getApiKey();
+      const modelSection = document.getElementById('model-section');
+      const select = document.getElementById('model-select');
+      const statusEl = document.getElementById('model-status');
+      const btnText = document.getElementById('fetch-models-text');
+
+      if (!apiKey || provider === 'demo') {
+        modelSection.style.display = 'none';
+        return;
+      }
+
+      modelSection.style.display = '';
+      btnText.textContent = 'Fetching...';
+      statusEl.textContent = 'Loading models from ' + provider + '...';
+
+      try {
+        const resp = await fetch(`${API}/models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider, apiKey }),
+        });
+        const data = await resp.json();
+        const models = data.models || [];
+
+        // Preserve current selection
+        const currentModel = getModel();
+
+        select.innerHTML = '<option value="">Default (auto)</option>';
+        for (const m of models) {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = m.name + '  (' + m.id + ')';
+          if (m.id === currentModel) opt.selected = true;
+          select.appendChild(opt);
+        }
+
+        statusEl.textContent = models.length > 0
+          ? `${models.length} models loaded — select one below`
+          : 'No models found. Make sure your API key is valid.';
+      } catch (err) {
+        statusEl.textContent = 'Could not fetch models. Make sure the server is running.';
+        console.error('fetchModels error:', err);
+      }
+      btnText.textContent = 'Refresh Models';
+    }
+
+    function onModelChange() {
+      const select = document.getElementById('model-select');
+      setModel(select.value);
+      showCurrentModel();
+      // Refresh navbar to show new model
+      document.getElementById('navbar').innerHTML = renderNavbar();
+      setActiveNav('nav-settings');
+    }
+
+    async function testConnection() {
+      const provider = getProvider();
+      const key = getApiKey();
+      const statusEl = document.getElementById('connection-status');
+
+      // Save any new key first
+      const newKey = document.getElementById('api-key-input').value.trim();
+      if (newKey) {
+        setApiKey(newKey);
+        document.getElementById('api-key-input').value = '';
+        showCurrentKey();
+      }
+
+      statusEl.innerHTML = `<div class="key-status key-status-warn"><div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> Testing connection...</div>`;
+
+      try {
+        const result = await fetch(`${API}/verify-key`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: getProvider(), apiKey: getApiKey() }),
+        });
+        const data = await result.json();
+
+        if (data.valid) {
+          statusEl.innerHTML = `<div class="key-status key-status-ok"><span class="status-dot status-dot-green"></span> ${escapeHtml(data.message)}</div>`;
+        } else {
+          statusEl.innerHTML = `<div class="key-status key-status-bad"><span class="status-dot status-dot-red"></span> ${escapeHtml(data.message)}</div>`;
+        }
+      } catch (err) {
+        statusEl.innerHTML = `<div class="key-status key-status-bad"><span class="status-dot status-dot-red"></span> Connection failed: ${escapeHtml(err.message)}</div>`;
+      }
+
+      // Refresh navbar
+      document.getElementById('navbar').innerHTML = renderNavbar();
+      setActiveNav('nav-settings');
+    }
+  </script>
+</body>
+</html>

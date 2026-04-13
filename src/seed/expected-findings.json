@@ -1,0 +1,42 @@
+{
+  "insecure-auth.ts": [
+    { "lineStart": 4, "category": "security", "severity": "critical", "description": "Hardcoded JWT secret" },
+    { "lineStart": 14, "category": "security", "severity": "critical", "description": "No password hashing" }
+  ],
+  "sql-injection.ts": [
+    { "lineStart": 7, "category": "security", "severity": "critical", "description": "SQL injection via template literal" },
+    { "lineStart": 13, "category": "security", "severity": "critical", "description": "SQL injection via string concat" }
+  ],
+  "hardcoded-secrets.ts": [
+    { "lineStart": 1, "category": "security", "severity": "critical", "description": "Hardcoded AWS key" },
+    { "lineStart": 4, "category": "security", "severity": "critical", "description": "Hardcoded DB password" },
+    { "lineStart": 7, "category": "security", "severity": "critical", "description": "Hardcoded API key" }
+  ],
+  "xss-vulnerability.ts": [
+    { "lineStart": 5, "category": "security", "severity": "warning", "description": "innerHTML XSS" },
+    { "lineStart": 10, "category": "security", "severity": "warning", "description": "innerHTML XSS" }
+  ],
+  "flask-sql-injection.py": [
+    { "lineStart": 3, "category": "security", "severity": "critical", "description": "Hardcoded SECRET_KEY" },
+    { "lineStart": 17, "category": "security", "severity": "critical", "description": "SQL injection via f-string" }
+  ],
+  "insecure-pickle.py": [
+    { "lineStart": 5, "category": "security", "severity": "critical", "description": "Hardcoded DB password" },
+    { "lineStart": 9, "category": "security", "severity": "critical", "description": "Unsafe pickle.loads" },
+    { "lineStart": 14, "category": "security", "severity": "critical", "description": "Unsafe yaml.load" }
+  ],
+  "java-sql-injection.java": [
+    { "lineStart": 13, "category": "security", "severity": "critical", "description": "SQL injection via string concat" },
+    { "lineStart": 21, "category": "logic", "severity": "warning", "description": "Empty catch block" }
+  ],
+  "java-hardcoded-creds.java": [
+    { "lineStart": 6, "category": "security", "severity": "critical", "description": "Hardcoded DB password" }
+  ],
+  "go-unchecked-error.go": [
+    { "lineStart": 10, "category": "security", "severity": "critical", "description": "Hardcoded API key" },
+    { "lineStart": 18, "category": "security", "severity": "critical", "description": "SQL built with fmt.Sprintf" }
+  ],
+  "clean-example.ts": [],
+  "clean-example.py": [],
+  "clean-example.java": []
+}

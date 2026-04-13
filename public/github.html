@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Analysis - AI Reviewer</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>GitHub Analysis</h1>
+      <a href="/dashboard.html" class="btn btn-secondary">Back to Tools</a>
+    </div>
+    <p style="color:var(--text-muted);margin-bottom:24px;">Paste a GitHub URL to fetch and analyze code. Supports repos, pull requests, and single files.</p>
+
+    <div id="alert"></div>
+
+    <!-- Step 1: Enter URL -->
+    <div id="step-url">
+      <div class="github-input-row">
+        <input type="text" class="form-input" id="github-url" placeholder="https://github.com/owner/repo  or  .../pull/123  or  .../blob/main/file.ts">
+        <button class="btn btn-primary" id="fetch-btn" onclick="fetchFromGitHub()">Fetch</button>
+      </div>
+      <div style="color:var(--text-muted);font-size:13px;">
+        <strong>Examples:</strong>
+        <ul style="margin-top:6px;padding-left:20px;">
+          <li>Repository: <code style="color:var(--primary)">https://github.com/user/repo</code></li>
+          <li>Pull Request: <code style="color:var(--primary)">https://github.com/user/repo/pull/42</code></li>
+          <li>Single File: <code style="color:var(--primary)">https://github.com/user/repo/blob/main/src/index.ts</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="fetch-loading" style="display:none">
+      <div class="loader">
+        <div class="spinner"></div>
+        <p>Fetching files from GitHub...</p>
+      </div>
+    </div>
+
+    <!-- Step 2: Pick tool + review files -->
+    <div id="step-tool" style="display:none">
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 id="repo-info" style="font-size:16px;"></h3>
+          <span id="file-count" class="badge badge-info"></span>
+        </div>
+        <div class="github-files-preview file-list" id="github-file-list"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Choose Tool</label>
+        <select class="form-input" id="tool-select">
+          <option value="quick-scan">Quick Scan (free — pattern matching)</option>
+          <option value="deep-review">Deep Review (AI)</option>
+          <option value="explain">Explain Code (AI)</option>
+          <option value="improve">Improve Code (AI)</option>
+          <option value="generate-tests">Generate Tests (AI)</option>
+          <option value="generate-docs">Generate Docs (AI)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary btn-lg" id="run-btn" onclick="runAnalysis()">Run Analysis</button>
+    </div>
+
+    <!-- Analysis loading -->
+    <div id="analysis-loading" style="display:none">
+      <div class="loader">
+        <div class="spinner"></div>
+        <p id="analysis-loading-text">Analyzing...</p>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" style="display:none"></div>
+  </div>
+
+  <div id="footer"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    document.getElementById('navbar').innerHTML = renderNavbar();
+    document.getElementById('footer').innerHTML = renderFooter();
+    setActiveNav('nav-dashboard');
+
+    let fetchedFiles = [];
+
+    async function fetchFromGitHub() {
+      const url = document.getElementById('github-url').value.trim();
+      if (!url) { showError('Please enter a GitHub URL'); return; }
+
+      document.getElementById('fetch-btn').disabled = true;
+      document.getElementById('step-url').style.display = 'none';
+      document.getElementById('fetch-loading').style.display = '';
+      document.getElementById('alert').innerHTML = '';
+
+      try {
+        const result = await apiFetch('/github-import', {
+          method: 'POST',
+          body: JSON.stringify({ url }),
+        });
+
+        fetchedFiles = result.files;
+
+        document.getElementById('repo-info').textContent =
+          `${result.owner}/${result.repo}` + (result.prNumber ? ` — PR #${result.prNumber}` : '');
+        document.getElementById('file-count').textContent = `${result.fileCount} files`;
+
+        document.getElementById('github-file-list').innerHTML = fetchedFiles.map((f, i) => `
+          <div class="file-list-item">
+            <span>${escapeHtml(f.filename)} <span style="color:var(--text-muted);font-size:11px;">(${f.lines} lines)</span></span>
+            <button class="remove" onclick="removeGHFile(${i})">&times;</button>
+          </div>
+        `).join('');
+
+        document.getElementById('fetch-loading').style.display = 'none';
+        document.getElementById('step-tool').style.display = '';
+      } catch (err) {
+        document.getElementById('fetch-loading').style.display = 'none';
+        document.getElementById('step-url').style.display = '';
+        document.getElementById('fetch-btn').disabled = false;
+        showError(err.message);
+      }
+    }
+
+    function removeGHFile(i) {
+      fetchedFiles.splice(i, 1);
+      document.getElementById('file-count').textContent = `${fetchedFiles.length} files`;
+      document.getElementById('github-file-list').innerHTML = fetchedFiles.map((f, idx) => `
+        <div class="file-list-item">
+          <span>${escapeHtml(f.filename)} <span style="color:var(--text-muted);font-size:11px;">(${f.lines} lines)</span></span>
+          <button class="remove" onclick="removeGHFile(${idx})">&times;</button>
+        </div>
+      `).join('');
+    }
+
+    async function runAnalysis() {
+      if (fetchedFiles.length === 0) { showError('No files to analyze'); return; }
+
+      const tool = document.getElementById('tool-select').value;
+      const files = fetchedFiles.map(f => ({ filename: f.filename, content: f.content }));
+
+      document.getElementById('step-tool').style.display = 'none';
+      document.getElementById('analysis-loading').style.display = '';
+      document.getElementById('analysis-loading-text').textContent =
+        tool === 'quick-scan' ? 'Scanning code...' : 'AI is analyzing... This may take 10-30 seconds.';
+      document.getElementById('alert').innerHTML = '';
+
+      try {
+        let resultHtml;
+
+        if (tool === 'quick-scan') {
+          const review = await apiFetch('/reviews', {
+            method: 'POST',
+            body: JSON.stringify({ files, reviewProfile: 'full' }),
+          });
+          resultHtml = buildQuickScanHtml(review);
+        } else {
+          const response = await apiFetch(`/ai/${tool}`, {
+            method: 'POST',
+            body: JSON.stringify({ files }),
+          });
+          resultHtml = `
+            <div class="ai-response">
+              <div class="ai-response-header"><h2>Results</h2></div>
+              <div class="markdown-body">${renderMarkdown(response.result)}</div>
+            </div>
+          `;
+        }
+
+        document.getElementById('analysis-loading').style.display = 'none';
+        document.getElementById('results').style.display = '';
+        document.getElementById('results').innerHTML = resultHtml + `
+          <div style="margin:24px 0;display:flex;gap:12px;">
+            <button class="btn btn-primary" onclick="location.reload()">Analyze Again</button>
+            <a href="/dashboard.html" class="btn btn-secondary">Back to Tools</a>
+          </div>
+        `;
+      } catch (err) {
+        document.getElementById('analysis-loading').style.display = 'none';
+        document.getElementById('step-tool').style.display = '';
+        showError(err.message);
+      }
+    }
+
+    function buildQuickScanHtml(review) {
+      const totalFindings = review.files.reduce((s, f) => s + f.findings.length, 0);
+      const score = review.projectScore;
+      let html = `<div class="results-summary">`;
+      if (score != null) html += `<div class="stat-card"><div class="stat-value" style="color:var(--${score >= 80 ? 'success' : score >= 50 ? 'warning' : 'critical'})">${score}</div><div class="stat-label">Health Score</div></div>`;
+      html += `<div class="stat-card"><div class="stat-value">${review.files.length}</div><div class="stat-label">Files</div></div>`;
+      html += `<div class="stat-card"><div class="stat-value">${totalFindings}</div><div class="stat-label">Issues</div></div></div>`;
+
+      for (const file of review.files) {
+        const findings = [...file.findings].sort((a, b) => ({ critical: 3, warning: 2, info: 1 }[b.severity] || 0) - ({ critical: 3, warning: 2, info: 1 }[a.severity] || 0));
+        html += `<div class="file-section"><div class="file-header"><h3>${escapeHtml(file.filename)}</h3><div class="file-header-right">${findings.length > 0 ? `<span class="badge badge-warning">${findings.length} issues</span>` : '<span class="badge badge-success">Clean</span>'}</div></div><div class="file-findings">`;
+        for (const f of findings) {
+          html += `<div class="finding finding-${f.severity}"><div class="finding-header">${severityBadge(f.severity)}<span class="finding-line">Line ${f.lineStart}</span></div><div class="finding-message">${escapeHtml(f.message)}</div>${f.codeSnippet ? `<div class="code-block">${escapeHtml(f.codeSnippet)}</div>` : ''}${f.suggestedFix ? `<details class="suggested-fix"><summary>View Fix</summary><div class="code-block">${escapeHtml(f.suggestedFix)}</div></details>` : ''}</div>`;
+        }
+        html += `</div></div>`;
+      }
+      return html;
+    }
+
+    function showError(msg) {
+      document.getElementById('alert').innerHTML = `<div class="alert alert-error">${escapeHtml(msg)}</div>`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tool - AI Reviewer</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container">
+    <div class="page-header">
+      <h1 id="tool-title">Loading...</h1>
+      <a href="/dashboard.html" class="btn btn-secondary">Back to Tools</a>
+    </div>
+    <p id="tool-description" style="color:var(--text-muted);margin-bottom:8px;"></p>
+    <p id="model-info" style="color:var(--text-muted);font-size:13px;margin-bottom:24px;"></p>
+
+    <div id="alert"></div>
+
+    <!-- Input Section -->
+    <div id="input-section">
+      <!-- Input Method Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('paste')">Paste Code</button>
+        <button class="tab" onclick="switchTab('upload')">Upload Files</button>
+        <button class="tab" onclick="switchTab('folder')">Upload Folder</button>
+      </div>
+
+      <!-- Paste Tab -->
+      <div id="tab-paste">
+        <div class="form-group">
+          <label>Filename</label>
+          <input type="text" class="form-input" id="paste-filename" placeholder="main.ts" value="main.ts">
+        </div>
+        <div class="form-group">
+          <label>Your Code</label>
+          <textarea class="form-input" id="paste-code" placeholder="Paste your code here..." rows="15"></textarea>
+        </div>
+      </div>
+
+      <!-- Upload Files Tab -->
+      <div id="tab-upload" style="display:none">
+        <div class="upload-area" id="upload-drop-area">
+          <h3>Drop files here or click to browse</h3>
+          <p>Supports .ts, .js, .py, .java, .go, .rs, .rb, .cpp and more</p>
+          <div class="upload-buttons">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('file-input').click()">Select Files</button>
+          </div>
+          <input type="file" id="file-input" multiple style="display:none">
+        </div>
+        <div class="file-list" id="upload-file-list"></div>
+      </div>
+
+      <!-- Upload Folder Tab -->
+      <div id="tab-folder" style="display:none">
+        <div class="upload-area" id="folder-drop-area">
+          <h3>Select an entire folder</h3>
+          <p>All supported code files will be included</p>
+          <div class="upload-buttons">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('folder-input').click()">Select Folder</button>
+          </div>
+          <input type="file" id="folder-input" webkitdirectory directory multiple style="display:none">
+        </div>
+        <div class="file-list" id="folder-file-list"></div>
+      </div>
+
+      <!-- Question input (only for Ask tool) -->
+      <div id="question-section" style="display:none">
+        <div class="form-group" style="margin-top:20px">
+          <label>Your Question</label>
+          <input type="text" class="form-input" id="question-input" placeholder="e.g. Is this function thread-safe? What happens if the input is null?">
+        </div>
+      </div>
+
+      <!-- Review profile (only for quick-scan) -->
+      <div id="profile-section" style="display:none">
+        <div class="card" style="margin-top:20px">
+          <div class="form-group" style="margin-bottom:0">
+            <label>Review Focus</label>
+            <select class="form-input" id="review-profile">
+              <option value="full">Full Review (security + performance + quality)</option>
+              <option value="security">Security Only</option>
+              <option value="performance">Performance Only</option>
+              <option value="quality">Code Quality Only</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;">
+        <button class="btn btn-primary btn-lg" id="submit-btn" onclick="runTool()">Run</button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" style="display:none">
+      <div class="loader">
+        <div class="spinner"></div>
+        <p id="loading-text">Processing...</p>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" style="display:none"></div>
+  </div>
+
+  <div id="footer"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    document.getElementById('navbar').innerHTML = renderNavbar();
+    document.getElementById('footer').innerHTML = renderFooter();
+    setActiveNav('nav-dashboard');
+
+    const params = new URLSearchParams(window.location.search);
+    const tool = params.get('tool') || 'quick-scan';
+
+    const TOOLS = {
+      'quick-scan': {
+        title: 'Quick Scan',
+        desc: 'Fast pattern-based scan for security vulnerabilities, code smells, and common bugs. Free — no API key needed.',
+        loading: 'Scanning your code...',
+        isQuickScan: true,
+      },
+      'deep-review': {
+        title: 'Deep Review',
+        desc: 'AI analyzes your code for logic bugs, race conditions, security vulnerabilities, and architectural issues that pattern matching cannot catch.',
+        loading: 'AI is analyzing your code... This may take 10-30 seconds.',
+      },
+      'explain': {
+        title: 'Explain Code',
+        desc: 'Get a clear, plain English explanation of what your code does and how it works.',
+        loading: 'AI is reading your code...',
+      },
+      'improve': {
+        title: 'Improve Code',
+        desc: 'Get suggestions for cleaner patterns, better architecture, and more idiomatic code. Shows before/after with explanations.',
+        loading: 'AI is finding improvements...',
+      },
+      'generate-tests': {
+        title: 'Generate Tests',
+        desc: 'Auto-generate comprehensive unit tests covering happy path, edge cases, and error handling.',
+        loading: 'AI is writing tests...',
+      },
+      'generate-docs': {
+        title: 'Generate Docs',
+        desc: 'Auto-generate documentation including JSDoc/docstrings, usage examples, and module overview.',
+        loading: 'AI is writing documentation...',
+      },
+      'ask': {
+        title: 'Ask a Question',
+        desc: 'Upload your code and ask any question about it. The AI will give you a specific, detailed answer.',
+        loading: 'AI is thinking...',
+        showQuestion: true,
+      },
+    };
+
+    const toolConfig = TOOLS[tool] || TOOLS['quick-scan'];
+    document.getElementById('tool-title').textContent = toolConfig.title;
+    document.getElementById('tool-description').textContent = toolConfig.desc;
+    document.title = toolConfig.title + " - AI Reviewer";
+
+    // Show current model/provider info
+    {
+      const provider = getProvider();
+      const model = getModel();
+      const infoEl = document.getElementById('model-info');
+      if (provider === 'demo') {
+        infoEl.innerHTML = '<span style="opacity:0.7;">Provider:</span> Demo (pattern matching only)';
+      } else {
+        const providerLabel = provider.charAt(0).toUpperCase() + provider.slice(1);
+        const modelLabel = model || 'default';
+        infoEl.innerHTML = '<span style="opacity:0.7;">Provider:</span> ' + escapeHtml(providerLabel) +
+          ' &nbsp;&bull;&nbsp; <span style="opacity:0.7;">Model:</span> ' + escapeHtml(modelLabel) +
+          ' &nbsp; <a href="/settings.html" style="font-size:12px;color:var(--primary);">Change</a>';
+      }
+    }
+
+    if (toolConfig.showQuestion) {
+      document.getElementById('question-section').style.display = '';
+    }
+    if (toolConfig.isQuickScan) {
+      document.getElementById('profile-section').style.display = '';
+    }
+
+    // ─── File handling ────────────────────────────────────
+
+    let uploadedFiles = [];
+    let folderFiles = [];
+    let activeTab = 'paste';
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab')[['paste','upload','folder'].indexOf(tab)].classList.add('active');
+      document.getElementById('tab-paste').style.display = tab === 'paste' ? '' : 'none';
+      document.getElementById('tab-upload').style.display = tab === 'upload' ? '' : 'none';
+      document.getElementById('tab-folder').style.display = tab === 'folder' ? '' : 'none';
+    }
+
+    document.getElementById('file-input').addEventListener('change', async (e) => {
+      uploadedFiles = [...uploadedFiles, ...await readFileList(e.target.files)];
+      renderList('upload-file-list', uploadedFiles);
+    });
+
+    document.getElementById('folder-input').addEventListener('change', async (e) => {
+      folderFiles = await readFileList(e.target.files);
+      renderList('folder-file-list', folderFiles);
+    });
+
+    ['upload-drop-area', 'folder-drop-area'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('dragover'); });
+      el.addEventListener('dragleave', () => el.classList.remove('dragover'));
+      el.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        el.classList.remove('dragover');
+        const files = await readFileList(e.dataTransfer.files);
+        if (id === 'upload-drop-area') {
+          uploadedFiles = [...uploadedFiles, ...files];
+          renderList('upload-file-list', uploadedFiles);
+        } else {
+          folderFiles = [...folderFiles, ...files];
+          renderList('folder-file-list', folderFiles);
+        }
+      });
+    });
+
+    function renderList(elId, files) {
+      document.getElementById(elId).innerHTML = files.map((f, i) => `
+        <div class="file-list-item">
+          <span>${escapeHtml(f.filename)}</span>
+          <button class="remove" onclick="removeFile('${elId}', ${i})">&times;</button>
+        </div>
+      `).join('');
+    }
+
+    function removeFile(listId, i) {
+      if (listId === 'upload-file-list') { uploadedFiles.splice(i, 1); renderList(listId, uploadedFiles); }
+      else { folderFiles.splice(i, 1); renderList(listId, folderFiles); }
+    }
+
+    // ─── Get files from current input ─────────────────────
+
+    function getFiles() {
+      if (activeTab === 'paste') {
+        const code = document.getElementById('paste-code').value.trim();
+        const filename = document.getElementById('paste-filename').value.trim() || 'main.ts';
+        if (!code) return [];
+        return [{ filename, content: code }];
+      }
+      if (activeTab === 'upload') return uploadedFiles;
+      return folderFiles;
+    }
+
+    // ─── Run Tool ─────────────────────────────────────────
+
+    async function runTool() {
+      const files = getFiles();
+      if (files.length === 0) {
+        showError('Please add some code first.');
+        return;
+      }
+
+      if (tool === 'ask') {
+        const q = document.getElementById('question-input').value.trim();
+        if (!q) { showError('Please enter a question.'); return; }
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      document.getElementById('input-section').style.display = 'none';
+      document.getElementById('loading').style.display = '';
+      document.getElementById('loading-text').textContent = toolConfig.loading;
+      document.getElementById('results').style.display = 'none';
+      document.getElementById('alert').innerHTML = '';
+
+      try {
+        if (toolConfig.isQuickScan) {
+          // Use the existing review pipeline
+          const review = await apiFetch('/reviews', {
+            method: 'POST',
+            body: JSON.stringify({
+              files,
+              reviewProfile: document.getElementById('review-profile').value,
+            }),
+          });
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('results').style.display = '';
+          renderQuickScanResults(review);
+        } else {
+          // Use the AI feature endpoint
+          const body = { files };
+          if (tool === 'ask') body.question = document.getElementById('question-input').value.trim();
+
+          const response = await apiFetch(`/ai/${tool}`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('results').style.display = '';
+          renderAIResponse(response);
+        }
+      } catch (err) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('input-section').style.display = '';
+        btn.disabled = false;
+        showError(err.message);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('alert').innerHTML = `<div class="alert alert-error">${escapeHtml(msg)}</div>`;
+    }
+
+    // ─── Render AI Response ───────────────────────────────
+
+    function renderAIResponse(response) {
+      document.getElementById('results').innerHTML = `
+        <div class="ai-response">
+          <div class="ai-response-header">
+            <h2>${toolConfig.title} Results</h2>
+            ${response.tokenEstimate ? `<span style="color:var(--text-muted);font-size:12px;">~${response.tokenEstimate} tokens</span>` : ''}
+          </div>
+          <div class="markdown-body">
+            ${renderMarkdown(response.result)}
+          </div>
+        </div>
+        <div style="margin:24px 0;display:flex;gap:12px;">
+          <button class="btn btn-primary" onclick="resetTool()">Run Again</button>
+          <a href="/dashboard.html" class="btn btn-secondary">Back to Tools</a>
+        </div>
+      `;
+    }
+
+    // ─── Render Quick Scan Results (same as before) ───────
+
+    function renderQuickScanResults(review) {
+      const totalFindings = review.files.reduce((s, f) => s + f.findings.length, 0);
+      const criticalCount = review.files.reduce((s, f) => s + f.findings.filter(fi => fi.severity === 'critical').length, 0);
+      const warningCount = review.files.reduce((s, f) => s + f.findings.filter(fi => fi.severity === 'warning').length, 0);
+      const infoCount = review.files.reduce((s, f) => s + f.findings.filter(fi => fi.severity === 'info').length, 0);
+      const score = review.projectScore;
+
+      let html = `
+        <div class="results-summary">
+          ${score != null ? `<div class="stat-card"><div class="stat-value" style="color:var(--${score >= 80 ? 'success' : score >= 50 ? 'warning' : 'critical'})">${score}</div><div class="stat-label">Health Score</div></div>` : ''}
+          <div class="stat-card"><div class="stat-value">${review.files.length}</div><div class="stat-label">Files</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--critical)">${criticalCount}</div><div class="stat-label">Critical</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--warning)">${warningCount}</div><div class="stat-label">Warnings</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--info)">${infoCount}</div><div class="stat-label">Info</div></div>
+        </div>
+      `;
+
+      if (totalFindings === 0) {
+        html += `<div class="empty-state"><h3>No issues found!</h3><p>Your code looks clean.</p></div>`;
+      }
+
+      for (const file of review.files) {
+        const findings = [...file.findings].sort((a, b) => {
+          const rank = { critical: 3, warning: 2, info: 1 };
+          return (rank[b.severity] || 0) - (rank[a.severity] || 0);
+        });
+        const fScore = file.healthScore;
+        const fClass = fScore != null ? scoreClass(fScore) : '';
+
+        html += `<div class="file-section"><div class="file-header"><h3>${escapeHtml(file.filename)}</h3><div class="file-header-right"><span style="font-size:12px;color:var(--text-muted)">${file.language} &middot; ${file.linesOfCode} lines</span>${findings.length > 0 ? `<span class="badge badge-warning">${findings.length} issues</span>` : '<span class="badge badge-success">Clean</span>'}${fScore != null ? `<div class="score-circle score-small ${fClass}">${fScore}</div>` : ''}</div></div><div class="file-findings">`;
+
+        for (const f of findings) {
+          html += `
+            <div class="finding finding-${f.severity}">
+              <div class="finding-header">
+                ${severityBadge(f.severity)}
+                <span class="badge badge-info" style="font-size:10px">${escapeHtml(f.category)}</span>
+                <span class="finding-line">Line ${f.lineStart}${f.lineEnd !== f.lineStart ? '-' + f.lineEnd : ''}</span>
+                <span class="finding-source">${escapeHtml(f.source)}</span>
+              </div>
+              <div class="finding-message">${escapeHtml(f.message)}</div>
+              ${f.codeSnippet ? `<div class="code-block">${escapeHtml(f.codeSnippet)}</div>` : ''}
+              ${f.suggestedFix ? `<details class="suggested-fix"><summary>View Suggested Fix</summary><div class="code-block">${escapeHtml(f.suggestedFix)}</div></details>` : ''}
+            </div>
+          `;
+        }
+        html += `</div></div>`;
+      }
+
+      html += `<div style="margin:24px 0;display:flex;gap:12px;"><button class="btn btn-primary" onclick="resetTool()">Run Again</button><a href="/dashboard.html" class="btn btn-secondary">Back to Tools</a></div>`;
+
+      document.getElementById('results').innerHTML = html;
+    }
+
+    function resetTool() {
+      document.getElementById('results').style.display = 'none';
+      document.getElementById('input-section').style.display = '';
+      document.getElementById('submit-btn').disabled = false;
+    }
+  </script>
+</body>
+</html>

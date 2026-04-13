@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+*.db
+*.db-journal
+.env
+.git
+.claude
+tests

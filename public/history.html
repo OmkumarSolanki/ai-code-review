@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History - AI Reviewer</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Review History</h1>
+    </div>
+
+    <div id="content">
+      <div class="loader">
+        <div class="spinner"></div>
+        <p>Loading your history...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    document.getElementById('navbar').innerHTML = renderNavbar();
+    document.getElementById('footer').innerHTML = renderFooter();
+    setActiveNav('nav-history');
+
+    async function loadReviews() {
+      try {
+        const reviews = await apiFetch('/reviews');
+        if (!reviews || reviews.length === 0) {
+          document.getElementById('content').innerHTML = `
+            <div class="empty-state">
+              <h3>No reviews yet</h3>
+              <p>Go to the dashboard and run your first analysis.</p>
+              <a href="/dashboard.html" class="btn btn-primary btn-lg">Go to Tools</a>
+            </div>
+          `;
+          return;
+        }
+
+        const html = reviews.map(r => {
+          const fileNames = r.files.map(f => f.filename).join(', ');
+          const totalFindings = r.files.reduce((sum, f) => sum + f.findings.length, 0);
+          const criticalCount = r.files.reduce((sum, f) => sum + f.findings.filter(fi => fi.severity === 'critical').length, 0);
+          const score = r.projectScore;
+          const sClass = score != null ? scoreClass(score) : '';
+
+          return `
+            <div class="review-item" onclick="window.location.href='/results.html?id=${r.id}'">
+              <div class="review-item-left">
+                <div class="review-item-files">${r.files.length} file${r.files.length === 1 ? '' : 's'} &middot; ${r.reviewProfile} review</div>
+                <div class="review-item-meta">
+                  <span>${escapeHtml(fileNames.length > 60 ? fileNames.slice(0, 60) + '...' : fileNames)}</span>
+                  <span>${timeAgo(r.createdAt)}</span>
+                </div>
+              </div>
+              <div class="review-item-right">
+                ${criticalCount > 0 ? `<span class="badge badge-critical">${criticalCount} critical</span>` : ''}
+                ${totalFindings > 0 ? `<span class="badge badge-warning">${totalFindings} issues</span>` : '<span class="badge badge-success">Clean</span>'}
+                ${score != null ? `<div class="score-circle score-small ${sClass}">${score}</div>` : ''}
+                <span class="badge badge-${r.status === 'COMPLETED' ? 'success' : r.status === 'FAILED' ? 'critical' : 'pending'}">${r.status}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('content').innerHTML = `<div class="review-list">${html}</div>`;
+      } catch (err) {
+        document.getElementById('content').innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    loadReviews();
+  </script>
+</body>
+</html>

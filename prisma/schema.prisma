@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  encryptedApiKey String?
+  llmProvider     String   @default("openai")
+  createdAt       DateTime @default(now())
+  reviews         Review[]
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  status        String   @default("PENDING")
+  reviewProfile String   @default("full")
+  inputMode     String   @default("full")
+  projectScore  Int?
+  totalFiles    Int      @default(0)
+  analyzedFiles Int      @default(0)
+  totalTimeMs   Int?
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  files         File[]
+}
+
+model File {
+  id          String    @id @default(cuid())
+  reviewId    String
+  review      Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  filename    String
+  language    String
+  content     String
+  contentHash String
+  healthScore Int?
+  linesOfCode Int       @default(0)
+  complexity  Int?
+  findings    Finding[]
+}
+
+model Finding {
+  id           String  @id @default(cuid())
+  fileId       String
+  file         File    @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  source       String
+  category     String
+  severity     String
+  message      String
+  lineStart    Int
+  lineEnd      Int
+  ruleId       String?
+  codeSnippet  String?
+  suggestedFix String?
+  fixStatus    String?
+  confidence   Float?
+  feedback     String?
+}

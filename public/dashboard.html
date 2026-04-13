@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - AI Reviewer</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <div class="container-wide">
+    <div class="page-header">
+      <h1>What would you like to do?</h1>
+    </div>
+
+    <div class="tools-grid">
+
+      <a href="/tool.html?tool=quick-scan" class="tool-card">
+        <div class="tool-card-icon">&#x1F50D;</div>
+        <span class="tool-badge tool-badge-free">Free</span>
+        <h3>Quick Scan</h3>
+        <p>Pattern-based scan for security issues, bugs, and code smells. No API key needed.</p>
+      </a>
+
+      <a href="/tool.html?tool=deep-review" class="tool-card">
+        <div class="tool-card-icon">&#x1F9E0;</div>
+        <span class="tool-badge tool-badge-ai">AI Powered</span>
+        <h3>Deep Review</h3>
+        <p>AI reads and understands your code. Finds logic bugs, race conditions, architectural issues.</p>
+      </a>
+
+      <a href="/tool.html?tool=explain" class="tool-card">
+        <div class="tool-card-icon">&#x1F4AC;</div>
+        <span class="tool-badge tool-badge-ai">AI Powered</span>
+        <h3>Explain Code</h3>
+        <p>Get a plain English explanation of what your code does and how it works.</p>
+      </a>
+
+      <a href="/tool.html?tool=improve" class="tool-card">
+        <div class="tool-card-icon">&#x2728;</div>
+        <span class="tool-badge tool-badge-ai">AI Powered</span>
+        <h3>Improve Code</h3>
+        <p>Get suggestions for cleaner code, better patterns, and more idiomatic style.</p>
+      </a>
+
+      <a href="/tool.html?tool=generate-tests" class="tool-card">
+        <div class="tool-card-icon">&#x1F9EA;</div>
+        <span class="tool-badge tool-badge-ai">AI Powered</span>
+        <h3>Generate Tests</h3>
+        <p>Auto-generate unit tests with full coverage — happy path, edge cases, error handling.</p>
+      </a>
+
+      <a href="/tool.html?tool=generate-docs" class="tool-card">
+        <div class="tool-card-icon">&#x1F4DD;</div>
+        <span class="tool-badge tool-badge-ai">AI Powered</span>
+        <h3>Generate Docs</h3>
+        <p>Auto-generate documentation, JSDoc/docstrings, and usage examples.</p>
+      </a>
+
+      <a href="/tool.html?tool=ask" class="tool-card">
+        <div class="tool-card-icon">&#x2753;</div>
+        <span class="tool-badge tool-badge-ai">AI Powered</span>
+        <h3>Ask a Question</h3>
+        <p>Ask anything about your code. "Is this thread-safe?" "What if input is null?"</p>
+      </a>
+
+      <a href="/github.html" class="tool-card">
+        <div class="tool-card-icon">&#x1F4E6;</div>
+        <span class="tool-badge tool-badge-ai">GitHub</span>
+        <h3>GitHub Analysis</h3>
+        <p>Paste a GitHub repo, PR, or file URL. We fetch the code and analyze it.</p>
+      </a>
+
+    </div>
+  </div>
+
+  <div id="footer"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    document.getElementById('navbar').innerHTML = renderNavbar();
+    document.getElementById('footer').innerHTML = renderFooter();
+    setActiveNav('nav-dashboard');
+  </script>
+</body>
+</html>
