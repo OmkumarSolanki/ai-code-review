@@ -2,8 +2,8 @@
 
 # AI Code Review Assistant
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/YOUR_USERNAME/ai-code-review)
-[![Tests](https://img.shields.io/badge/tests-133%2F133-brightgreen)](https://github.com/YOUR_USERNAME/ai-code-review)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/OmkumarSolanki/ai-code-review)
+[![Tests](https://img.shields.io/badge/tests-133%2F133-brightgreen)](https://github.com/OmkumarSolanki/ai-code-review)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-live-orange)](https://ai-code-review.fly.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue)](https://www.typescriptlang.org/)
@@ -13,7 +13,7 @@
 
 Three independent engines analyze your code in parallel, cross-validate findings, validate suggested fixes, and score your code's health — all from a single web interface.
 
-**[Live Demo](https://ai-code-review.fly.dev)** | Try it now — Quick Scan works for free, no API key needed.
+**<a href="https://ai-code-review.fly.dev" target="_blank">Live Demo</a>** | Try it now — Quick Scan works for free, no API key needed.
 
 </div>
 
