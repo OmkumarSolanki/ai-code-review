@@ -13,7 +13,7 @@
 
 Three independent engines analyze your code in parallel, cross-validate findings, validate suggested fixes, and score your code's health — all from a single web interface.
 
-**<a href="https://ai-code-review.fly.dev" target="_blank">Live Demo</a>** | Try it now — Quick Scan works for free, no API key needed.
+**<a href="https://ai-code-review.fly.dev" target="_blank" rel="noopener noreferrer">Live Demo</a>** | Try it now — Quick Scan works for free, no API key needed.
 
 </div>
 
